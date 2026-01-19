@@ -39,10 +39,7 @@ func (h *Handler) GetLeaderboard(w http.ResponseWriter, r *http.Request) {
 	leaderboard := h.leaderboardService.GetLeaderboard(limit)
 
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(map[string]interface{}{
-		"data":  leaderboard,
-		"count": len(leaderboard),
-	}); err != nil {
+	if err := json.NewEncoder(w).Encode(leaderboard); err != nil {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 		return
 	}
