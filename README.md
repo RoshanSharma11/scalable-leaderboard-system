@@ -116,8 +116,8 @@ Search "rah" → ["rahul", "rahul_kumar", "rahul123"]
 ### Installation
 
 ```bash
-git clone <repository-url>
-cd matiks-full-stack
+git clone https://github.com/RoshanSharma11/scalable-leaderboard-system
+cd scalable-leaderboard-system/backend
 go mod download
 ```
 
