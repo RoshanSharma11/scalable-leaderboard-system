@@ -17,9 +17,9 @@ export const API_CONFIG = {
   // Polling interval for live updates (milliseconds)
   REFRESH_INTERVAL: 2000,
   
-  // Initial number of leaderboard entries to load
-  INITIAL_LOAD_COUNT: 1000,
-  
+  // Initial load: fast first load
+  INITIAL_LOAD_SIZE: 200,
+
   // Request timeout (milliseconds)
   TIMEOUT: 5000,
 };
@@ -32,6 +32,9 @@ export const PERFORMANCE_CONFIG = {
   WINDOW_SIZE: 10,
   
   // Search debounce delay (milliseconds)
-  // Reduced to 100ms since n-gram search is extremely fast (< 1 ms)
-  SEARCH_DEBOUNCE_DELAY: 100,
+  // Set to 300ms to prevent excessive searches while typing
+  SEARCH_DEBOUNCE_DELAY: 300,
+  
+  // Minimum query length to trigger search
+  MIN_SEARCH_LENGTH: 3,
 };

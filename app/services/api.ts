@@ -22,11 +22,6 @@ export interface SearchResult {
   rank: number;
 }
 
-export interface LeaderboardResponse {
-  data: LeaderboardEntry[];
-  count: number;
-}
-
 export interface SearchResponse {
   data: SearchResult[];
   count: number;
@@ -41,22 +36,21 @@ class LeaderboardAPI {
   }
 
   /**
-   * Fetch leaderboard with optional limit
+   * Fetch leaderboard with optional limit and offset
    * @param limit Number of entries to fetch (default: 100)
+   * @param offset Offset for pagination (default: 0)
    */
-  async getLeaderboard(limit: number = 100): Promise<LeaderboardEntry[]> {
+  async getLeaderboard(limit: number = 100, offset: number = 0): Promise<LeaderboardEntry[]> {
     try {
-      console.log(`Fetching leaderboard from: ${this.baseURL}/leaderboard?limit=${limit}`);
-      
-      const response = await axios.get<LeaderboardResponse>(
+      const response = await axios.get<LeaderboardEntry[]>(
         `${this.baseURL}/leaderboard`,
         {
-          params: { limit },
+          params: { limit, offset },
           timeout: 10000, // 10 second timeout for debugging
         }
       );
       
-      return response.data.data || [];
+      return response.data || [];
     } catch (error) {
       if (axios.isAxiosError(error)) {
         console.error('Axios Error Details:', {

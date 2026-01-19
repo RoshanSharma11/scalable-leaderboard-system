@@ -19,6 +19,8 @@ export default function LeaderboardScreen() {
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLiveMode, setIsLiveMode] = useState(true);
+  const [limit, setLimit] = useState(API_CONFIG.INITIAL_LOAD_SIZE);
+  const [limitInput, setLimitInput] = useState(API_CONFIG.INITIAL_LOAD_SIZE.toString());
 
   const searchTimeoutRef = useRef<number | null>(null);
   const liveUpdateIntervalRef = useRef<number | null>(null);
@@ -28,26 +30,28 @@ export default function LeaderboardScreen() {
       if (showLoading) setLoading(true);
       setError(null);
 
-      const leaderboard = await leaderboardAPI.getLeaderboard(API_CONFIG.INITIAL_LOAD_COUNT);
+      const leaderboard = await leaderboardAPI.getLeaderboard(limit, 0);
       
-      const sortedLeaderboard = leaderboard.sort((a, b) => {
-        if (a.rank !== b.rank) return a.rank - b.rank;
-        return a.username.localeCompare(b.username);
-      });
-      
-      setData(sortedLeaderboard);
-      if (!searchQuery) setFilteredData(sortedLeaderboard);
+      setData(leaderboard);
+      if (!searchQuery) setFilteredData(leaderboard);
     } catch (err) {
-      setError('Failed to load leaderboard');
       console.error('Fetch error:', err);
+      setError('Failed to load leaderboard');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [searchQuery]);
+  }, [searchQuery, limit]);
 
   const performSearch = useCallback(async (query: string) => {
     if (!query || query.trim().length === 0) {
+      setFilteredData(data);
+      setSearching(false);
+      return;
+    }
+
+    // Don't search if query is too short
+    if (query.trim().length < PERFORMANCE_CONFIG.MIN_SEARCH_LENGTH) {
       setFilteredData(data);
       setSearching(false);
       return;
@@ -87,6 +91,20 @@ export default function LeaderboardScreen() {
     Keyboard.dismiss();
   }, [data]);
 
+  const updateLiveData = useCallback(async () => {
+    try {
+      const freshData = await leaderboardAPI.getLeaderboard(limit, 0);
+      
+      // Backend returns sorted data, just use it directly
+      setData(freshData);
+      if (!searchQuery) {
+        setFilteredData(freshData);
+      }
+    } catch (err) {
+      console.error('Live update error:', err);
+    }
+  }, [limit, searchQuery]);
+
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
     fetchLeaderboard(false);
@@ -94,6 +112,14 @@ export default function LeaderboardScreen() {
 
   const toggleLiveMode = useCallback(() => {
     setIsLiveMode((prev) => !prev);
+  }, []);
+
+  const handleLimitChange = useCallback((text: string) => {
+    setLimitInput(text);
+    const num = parseInt(text, 10);
+    if (!isNaN(num) && num > 0 && num <= 10000) {
+      setLimit(num);
+    }
   }, []);
 
   useEffect(() => {
@@ -107,13 +133,13 @@ export default function LeaderboardScreen() {
     }
 
     liveUpdateIntervalRef.current = setInterval(() => {
-      fetchLeaderboard(false);
+      updateLiveData();
     }, REFRESH_INTERVAL);
 
     return () => {
       if (liveUpdateIntervalRef.current) clearInterval(liveUpdateIntervalRef.current);
     };
-  }, [isLiveMode, fetchLeaderboard]);
+  }, [isLiveMode, updateLiveData]);
 
   useEffect(() => {
     return () => {
@@ -169,6 +195,8 @@ export default function LeaderboardScreen() {
     );
   }, [searchQuery, filteredData.length, isLiveMode]);
 
+
+
   if (loading && data.length === 0) {
     return (
       <View style={styles.loadingContainer}>
@@ -212,6 +240,19 @@ export default function LeaderboardScreen() {
                 <Ionicons name="close-circle" size={18} color="#999" />
               </TouchableOpacity>
             )}
+          </View>
+
+          <View style={styles.limitInputContainer}>
+            <Ionicons name="people-outline" size={18} color="#666" />
+            <TextInput
+              style={styles.limitInput}
+              placeholder="200"
+              placeholderTextColor="#999"
+              value={limitInput}
+              onChangeText={handleLimitChange}
+              keyboardType="number-pad"
+              maxLength={5}
+            />
           </View>
 
           <TouchableOpacity
@@ -296,6 +337,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
+    gap: 8,
   },
   searchInputContainer: {
     flex: 1,
@@ -304,7 +346,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
     borderRadius: 8,
     paddingHorizontal: 12,
-    marginRight: 8,
   },
   searchInput: {
     flex: 1,
@@ -315,6 +356,22 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     padding: 4,
+  },
+  limitInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    minWidth: 80,
+  },
+  limitInput: {
+    height: 40,
+    fontSize: 16,
+    color: '#333',
+    marginLeft: 8,
+    minWidth: 40,
+    textAlign: 'center',
   },
   liveButton: {
     backgroundColor: '#e0e0e0',
