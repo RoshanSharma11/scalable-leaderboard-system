@@ -1,6 +1,7 @@
 package snapshot
 
 import (
+	"sort"
 	"time"
 )
 
@@ -101,6 +102,16 @@ func (b *SnapshotBuilder) Build() *LeaderboardSnapshot {
 			Rating:   rating,
 		}
 		snap.UsersByRating[rating] = append(snap.UsersByRating[rating], summary)
+	}
+
+	for rating := range snap.UsersByRating {
+		users := snap.UsersByRating[rating]
+		if len(users) > 1 {
+			sort.Slice(users, func(i, j int) bool {
+				return users[i].ID < users[j].ID
+			})
+			snap.UsersByRating[rating] = users
+		}
 	}
 
 	return snap

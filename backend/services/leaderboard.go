@@ -236,16 +236,20 @@ func (s *LeaderboardService) updateSimulator() {
 		sleepMs := 50 + s.rng.Intn(51)
 		time.Sleep(time.Duration(sleepMs) * time.Millisecond)
 
-		userID := 1 + s.rng.Intn(InitialUsers)
-		newRating := utils.GenerateRandomRating(MinRating, MaxRating)
+		numUpdates := 5 + s.rng.Intn(11) // 5-15 users
 
-		select {
-		case s.updateChan <- RatingUpdate{
-			UserID:    userID,
-			NewRating: newRating,
-		}:
-		default:
-			// Channel full, drop update
+		for i := 0; i < numUpdates; i++ {
+			userID := 1 + s.rng.Intn(InitialUsers)
+			newRating := utils.GenerateRandomRating(MinRating, MaxRating)
+
+			select {
+			case s.updateChan <- RatingUpdate{
+				UserID:    userID,
+				NewRating: newRating,
+			}:
+			default:
+				// Channel full, drop update
+			}
 		}
 	}
 }
