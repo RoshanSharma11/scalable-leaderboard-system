@@ -38,7 +38,11 @@ func (h *Handler) GetLeaderboard(w http.ResponseWriter, r *http.Request) {
 
 	leaderboard := h.leaderboardService.GetLeaderboard(limit)
 
+	// Cache for 2 seconds (matches our snapshot rebuild interval)
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "public, max-age=2, s-maxage=2")
+	w.Header().Set("CDN-Cache-Control", "max-age=2")
+
 	if err := json.NewEncoder(w).Encode(leaderboard); err != nil {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 		return
@@ -59,7 +63,11 @@ func (h *Handler) Search(w http.ResponseWriter, r *http.Request) {
 
 	results := h.leaderboardService.Search(query)
 
+	// Add cache headers (shorter TTL for search since results change)
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "public, max-age=1, s-maxage=1")
+	w.Header().Set("CDN-Cache-Control", "max-age=1")
+
 	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"data":  results,
 		"count": len(results),

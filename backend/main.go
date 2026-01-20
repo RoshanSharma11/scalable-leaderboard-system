@@ -1,9 +1,12 @@
 package main
 
 import (
+	"compress/gzip"
+	"io"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"matiks-backend/handlers"
@@ -63,6 +66,33 @@ func recoveryMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// Gzip compression middleware
+type gzipResponseWriter struct {
+	io.Writer
+	http.ResponseWriter
+}
+
+func (w gzipResponseWriter) Write(b []byte) (int, error) {
+	return w.Writer.Write(b)
+}
+
+func gzipMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// Create gzip writer
+		w.Header().Set("Content-Encoding", "gzip")
+		gz := gzip.NewWriter(w)
+		defer gz.Close()
+
+		gzr := gzipResponseWriter{Writer: gz, ResponseWriter: w}
+		next.ServeHTTP(gzr, r)
+	})
+}
+
 func main() {
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -93,6 +123,7 @@ func main() {
 
 	var handlerWithMiddleware http.Handler = mux
 	handlerWithMiddleware = corsMiddleware(handlerWithMiddleware)
+	handlerWithMiddleware = gzipMiddleware(handlerWithMiddleware)
 	handlerWithMiddleware = loggingMiddleware(handlerWithMiddleware)
 	handlerWithMiddleware = recoveryMiddleware(handlerWithMiddleware)
 
